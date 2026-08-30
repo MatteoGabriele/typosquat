@@ -26,7 +26,7 @@ jobs:
   guard:
     runs-on: ubuntu-latest
     steps:
-      - uses: MatteoGabriele/typosquat@94e108d28b61ca997a51eba4acfea68a369b23fe
+      - uses: MatteoGabriele/typosquat@35001a02ccc57ce4629df709f97dee74045bffdc
 ```
 
 That comments on the thread and labels it. The job stays green: the note is
@@ -42,7 +42,7 @@ The built-in lists in [`src/trusted.ts`](src/trusted.ts) — `TRUSTED_BOTS` and 
 The maintainer list is a default, not a ranking: a starting set of names whose word carries weight in an issue tracker, so the common impersonations cost something out of the box. Add your own, and use `allow` for anyone the defaults flag by accident:
 
 ```yaml
-- uses: MatteoGabriele/typosquat@94e108d28b61ca997a51eba4acfea68a369b23fe
+- uses: MatteoGabriele/typosquat@35001a02ccc57ce4629df709f97dee74045bffdc
   with:
     protect: |
       acme-release-bot
@@ -74,7 +74,7 @@ The maintainer list is a default, not a ranking: a starting set of names whose w
 
 ```yaml
 - id: guard
-  uses: MatteoGabriele/typosquat@94e108d28b61ca997a51eba4acfea68a369b23fe
+  uses: MatteoGabriele/typosquat@35001a02ccc57ce4629df709f97dee74045bffdc
 - if: steps.guard.outputs.risk == 'critical'
   run: gh issue lock ${{ github.event.issue.number }}
 ```
@@ -129,7 +129,7 @@ block on, and the reviewer is the one who can tell a fork from a fake. When you
 do want a red job, ask for it:
 
 ```yaml
-- uses: MatteoGabriele/typosquat@94e108d28b61ca997a51eba4acfea68a369b23fe
+- uses: MatteoGabriele/typosquat@35001a02ccc57ce4629df709f97dee74045bffdc
   with:
     fail-on-match: true
 ```
@@ -150,7 +150,7 @@ leave failing off and decide in the workflow:
 
 ```yaml
 - id: guard
-  uses: MatteoGabriele/typosquat@94e108d28b61ca997a51eba4acfea68a369b23fe
+  uses: MatteoGabriele/typosquat@35001a02ccc57ce4629df709f97dee74045bffdc
 
 - name: Fail on a copied name, tolerate a typo
   if: steps.guard.outputs.risk == 'critical'

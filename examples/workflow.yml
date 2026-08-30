@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - id: guard
-        uses: MatteoGabriele/typosquat@94e108d28b61ca997a51eba4acfea68a369b23fe
+        uses: MatteoGabriele/typosquat@35001a02ccc57ce4629df709f97dee74045bffdc
         with:
           protect: |
             acme-release-bot
