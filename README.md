@@ -24,7 +24,7 @@ jobs:
   guard:
     runs-on: ubuntu-latest
     steps:
-      - uses: MatteoGabriele/typosquat@v1
+      - uses: MatteoGabriele/typosquat@0b860af5b00743a61082f4fb968d479db3e63208
 ```
 
 ## Who it protects
@@ -34,7 +34,7 @@ The built-in lists in [`src/trusted.ts`](src/trusted.ts) — `TRUSTED_BOTS` and 
 The maintainer list is a default, not a ranking: a starting set of names whose word carries weight in an issue tracker, so the common impersonations cost something out of the box. Add your own, and use `allow` for anyone the defaults flag by accident:
 
 ```yaml
-- uses: MatteoGabriele/typosquat@v1
+- uses: MatteoGabriele/typosquat@0b860af5b00743a61082f4fb968d479db3e63208
   with:
     protect: |
       acme-release-bot
@@ -64,7 +64,7 @@ The maintainer list is a default, not a ranking: a starting set of names whose w
 
 ```yaml
 - id: guard
-  uses: MatteoGabriele/typosquat@v1
+  uses: MatteoGabriele/typosquat@0b860af5b00743a61082f4fb968d479db3e63208
 - if: steps.guard.outputs.risk == 'critical'
   run: gh issue lock ${{ github.event.issue.number }}
 ```
