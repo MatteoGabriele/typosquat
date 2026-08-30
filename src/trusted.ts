@@ -21,4 +21,5 @@ export const TRUSTED: readonly string[] = [
 	"TkDodo",
 	"graphieros",
 	"gameroman",
+	"yyx990803",
 ];

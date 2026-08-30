@@ -10,10 +10,7 @@ import {
 
 export type Severity = "none" | "low" | "medium" | "high" | "critical";
 
-/** `fail-on` accepts every severity plus an explicit opt-out. */
 export type FailOn = Severity | "never";
-
-/** An identity worth defending. */
 export interface Protected {
 	login: string;
 	isBot: boolean;
@@ -61,11 +58,15 @@ function match(
 	target: Protected,
 ): Omit<Match, "severity"> | null {
 	const base = botBase(target.login);
-	if (base.length < 4) return null;
+	if (base.length < 4) {
+		return null;
+	}
 
 	const a = login.toLowerCase();
 	const b = base.toLowerCase();
-	if (a === b && !target.isBot) return null;
+	if (a === b && !target.isBot) {
+		return null;
+	}
 
 	const hit = (rule: string, score: number, reason: string) => ({
 		rule,
@@ -90,6 +91,7 @@ function match(
 	if (target.isBot && foldSeparators(stripBotAffix(a)) === bSep) {
 		return hit("bot-affix-variant", 82, `hand-made variant of ${target.login}`);
 	}
+
 	if (foldLeet(a) === foldLeet(b) && aSep !== bSep) {
 		return hit(
 			"digit-substitution",
@@ -97,6 +99,7 @@ function match(
 			"letters replaced by lookalike digits",
 		);
 	}
+
 	if (aSep === bSep) {
 		return hit(
 			"separator-variant",
@@ -104,6 +107,7 @@ function match(
 			"differs only by hyphens or underscores",
 		);
 	}
+
 	if (digraphFold(aSep) === digraphFold(bSep)) {
 		return hit(
 			"digraph-lookalike",
@@ -111,18 +115,23 @@ function match(
 			'multi-character lookalike, e.g. "rn" for "m"',
 		);
 	}
+
 	if (foldRepeats(aSep) === foldRepeats(bSep)) {
 		return hit("doubled-character", 72, "a character doubled or de-doubled");
 	}
+
 	if (osaDistance(aSep, bSep, 2) === 1) {
 		return hit("single-character-edit", 76, "one character away");
 	}
+
 	if (isSwap(aSep, bSep)) {
 		return hit("character-swap", 76, "two characters swapped");
 	}
+
 	if (osaDistance(aSep, bSep, 2) === 2 && bSep.length >= 8) {
 		return hit("near-miss", 58, "two characters away");
 	}
+
 	if (
 		bSep.length >= 5 &&
 		aSep.includes(bSep) &&
@@ -130,6 +139,7 @@ function match(
 	) {
 		return hit("affix-wrap", 62, "wraps the protected name in extra words");
 	}
+
 	return null;
 }
 

@@ -61,8 +61,13 @@ async function contributors(
 			},
 		},
 	).catch(() => null);
-	if (!res?.ok) return [];
+
+	if (!res?.ok) {
+		return [];
+	}
+
 	const body = (await res.json().catch(() => [])) as { login?: string }[];
+
 	return Array.isArray(body)
 		? body.flatMap((c) => (c.login ? [c.login] : []))
 		: [];
@@ -70,10 +75,11 @@ async function contributors(
 
 async function run(): Promise<void> {
 	const eventPath = process.env.GITHUB_EVENT_PATH;
-	if (!eventPath)
+	if (!eventPath) {
 		throw new Error(
 			"GITHUB_EVENT_PATH is not set; run this inside GitHub Actions.",
 		);
+	}
 
 	const repository = process.env.GITHUB_REPOSITORY ?? "/";
 	const owner = repository.split("/")[0];
@@ -92,13 +98,17 @@ async function run(): Promise<void> {
 		setOutput("rule", "");
 	};
 
-	if (!author)
+	if (!author) {
 		return clear("the event carries no issue or pull request author");
-	// "[" and "]" are illegal in a human login, so this suffix cannot be forged.
-	if (/\[bot\]$/i.test(author))
+	}
+
+	if (/\[bot\]$/i.test(author)) {
 		return clear(`${author} is a genuine GitHub App`);
-	if (allow.has(author.toLowerCase()))
+	}
+
+	if (allow.has(author.toLowerCase())) {
 		return clear(`${author} is on the allow list`);
+	}
 
 	const logins = [
 		...TRUSTED,
@@ -106,23 +116,33 @@ async function run(): Promise<void> {
 		...list(input("protect")),
 		...(await contributors(repository, token)),
 	];
+
 	const seen = new Set<string>();
 	const targets: Protected[] = [];
+
 	for (const login of logins) {
 		const key = login.toLowerCase();
-		if (!login || seen.has(key) || allow.has(key)) continue;
+
+		if (!login || seen.has(key) || allow.has(key)) {
+			continue;
+		}
+
 		seen.add(key);
 		targets.push({ login, isBot: isBotLogin(login) });
 	}
 
 	log(`Checking ${author} against ${targets.length} protected logins.`);
+
 	const result = check(author, targets);
-	if (!result) return clear(`${author} resembles none of them`);
+	if (!result) {
+		return clear(`${author} resembles none of them`);
+	}
 
 	setOutput("risk", result.severity);
 	setOutput("score", String(result.score));
 	setOutput("resembles", result.resembles);
 	setOutput("rule", result.rule);
+
 	log(
 		`::warning::${author} resembles ${result.resembles} - ${result.reason} (${result.severity}, ${result.score}/100).`,
 	);

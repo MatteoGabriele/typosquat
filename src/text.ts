@@ -1,5 +1,3 @@
-// Login folding.
-//
 // A GitHub login may only contain [A-Za-z0-9-] (single hyphens, 39 chars max),
 // so Unicode homoglyph attacks are impossible here. Login attacks are ASCII:
 // typos, digit substitution, hyphen games and bot-ish affixes.
