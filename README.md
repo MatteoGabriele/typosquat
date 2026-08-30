@@ -4,7 +4,7 @@ A GitHub Action that warns when an issue or pull request is opened by an account
 
 Bots are not the only thing worth imitating. A maintainer's name carries as much weight in an issue tracker as a bot's, and often more.
 
-It checks one thing: the login of the author. By default it fails the job on any lookalike; `mode: warn` reports without failing. It posts nothing and blocks nothing else: the judgement is on the reviewer.
+It checks one thing: the login of the author. By default it comments on the thread and labels it, and the job stays green — `mode` chooses the channels, `fail-on-match: true` makes a lookalike fail the job. It blocks nothing else: the judgement is on the reviewer.
 
 ## Quick start
 
@@ -19,6 +19,8 @@ on:
 
 permissions:
   contents: read
+  issues: write
+  pull-requests: write
 
 jobs:
   guard:
@@ -27,8 +29,11 @@ jobs:
       - uses: MatteoGabriele/typosquat@94e108d28b61ca997a51eba4acfea68a369b23fe
 ```
 
-That fails the job on any lookalike. To watch first and fail later, add
-`with: { mode: warn }` — the outputs and the warning are the same either way.
+That comments on the thread and labels it. The job stays green: the note is
+for the reviewer, who decides. To fail the job on a lookalike, add
+`with: { fail-on-match: true }`; to say nothing on the thread,
+`with: { mode: silent }` — and then `contents: read` is the only permission the
+job needs.
 
 ## Who it protects
 
@@ -53,7 +58,9 @@ The maintainer list is a default, not a ranking: a starting set of names whose w
 | `github-token` | `${{ github.token }}` | Token used to list contributors. |
 | `protect` | — | Extra logins to defend, comma- or newline-separated. |
 | `allow` | — | Logins that are never flagged. |
-| `mode` | `strict` | `strict` fails the job on any lookalike. `warn` only annotates. |
+| `mode` | `full` | What to do with a lookalike: `full`, `labels`, `comment` or `silent`. |
+| `fail-on-match` | `false` | Whether a lookalike fails the job. |
+| `label` | `typosquat:lookalike` | Label added when `mode` includes labelling. |
 
 ## Outputs
 
@@ -94,46 +101,70 @@ CRITICAL: dependab0t looks like dependabot[bot] (letters replaced by lookalike
 digits). Copied on purpose. Nobody types this name by accident.
 ```
 
-## The two modes
+## What it does with a match
 
-There is one setting, and it answers one question: should a lookalike stop the
-job?
+Two settings, answering two separate questions. `mode` decides what the thread
+is told; `fail-on-match` decides whether the job goes red. They do not talk to
+each other: a `silent` run can be asked to fail the job, and a `full` one is
+green unless you ask.
 
 | `mode` | What it does |
 | --- | --- |
-| `strict` (default) | A lookalike fails the job. |
-| `warn` | Nothing ever fails. The match is still reported. |
+| `full` (default) | Comments on the thread and labels it. |
+| `comment` | Comments only. |
+| `labels` | Labels only. |
+| `silent` | Neither. The outputs and the annotation are all you get. |
+
+The comment is one note per thread: it carries a hidden marker, so a thread
+checked ten times is edited, not spammed. The label is `typosquat:lookalike`
+unless you set `label`. Anything else — an unknown `mode` — falls back to
+`full` and says so in a warning, rather than quietly doing nothing.
+
+Commenting and labelling need the job to grant `issues: write` and
+`pull-requests: write`. When they are missing the finding is still reported and
+the exit code is unchanged; a warning says the note could not be posted.
+
+Failing is off by default. A lookalike is a thing to look at, not a thing to
+block on, and the reviewer is the one who can tell a fork from a fake. When you
+do want a red job, ask for it:
 
 ```yaml
 - uses: MatteoGabriele/typosquat@94e108d28b61ca997a51eba4acfea68a369b23fe
   with:
-    mode: warn
+    fail-on-match: true
 ```
 
-Start on `warn` if you want to see what your repository actually gets before
-anything blocks a contributor. The outputs and the warning annotation are
-identical in both modes, so switching one to the other changes nothing except
-whether the job goes red.
+Only an explicit `true` turns failing on, so a typo in the value leaves the run
+where it started: reported, and nobody blocked by a mistyped flag.
 
-Anything other than `warn` is treated as `strict`, so a typo in the value cannot
-quietly turn the guard off.
+`mode: silent` with the default `fail-on-match` is watch-only: nothing fails,
+nothing is posted, and the outputs still carry the verdict. Start there if you
+want to see what your repository actually gets before anything touches a
+contributor's thread.
 
 ### If you want something in between
 
 The levels above are not a setting; they are what the action reports. `mode` is
-deliberately not a dial. When you want a middle ground, use `warn` and decide in
-the workflow:
+deliberately not a dial. When you want to fail on some levels but not others,
+leave failing off and decide in the workflow:
 
 ```yaml
 - id: guard
   uses: MatteoGabriele/typosquat@94e108d28b61ca997a51eba4acfea68a369b23fe
-  with:
-    mode: warn
 
 - name: Fail on a copied name, tolerate a typo
   if: steps.guard.outputs.risk == 'critical'
   run: exit 1
 ```
+
+### Coming from `mode: strict` or `mode: warn`
+
+`mode` used to answer the failing question, and the default used to be to
+fail. Those values still work and still mean what they meant — `strict` fails,
+`warn` does not — but they now set `fail-on-match` and leave the channels on
+`full`. The older `fail-on: <level>` is read the same way. The action warns when
+it sees either. Replace `mode: strict` with `fail-on-match: true`, and
+`mode: warn` with nothing at all.
 
 ## Which rule matched
 

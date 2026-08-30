@@ -13,13 +13,16 @@ import {
 export type Severity = "none" | "low" | "medium" | "high" | "critical";
 
 /**
- * The only knob: does a lookalike stop the job, or just warn?
+ * What the action does with a match, beyond the outputs and the annotation.
  *
- * `strict` (the default) fails the job on any match. `warn` never fails it.
- * The outputs and the warning annotation are identical either way, so a
- * workflow that wants a middle ground can read `risk` or `rule` itself.
+ * `full` comments and labels, `comment` and `labels` do one of the two, and
+ * `silent` does neither. Whether the job also goes red is a separate question,
+ * answered by `fail-on-match`: a silent run can still fail, and a full one can
+ * be told not to.
  */
-export type Mode = "strict" | "warn";
+export type Mode = "full" | "labels" | "comment" | "silent";
+
+export const MODES: readonly Mode[] = ["full", "labels", "comment", "silent"];
 
 export interface Protected {
 	login: string;
@@ -233,14 +236,30 @@ export function atLeast(severity: Severity, minimum: Severity): boolean {
 }
 
 /** A match is always reported. This only decides whether the job also fails. */
-export function shouldFail(severity: Severity, mode: Mode): boolean {
-	return mode === "strict" && severity !== "none";
+export function shouldFail(severity: Severity, failOnMatch: boolean): boolean {
+	return failOnMatch && severity !== "none";
 }
 
-/** Anything that is not "warn" is strict, so a typo cannot quietly disarm it. */
-export function modeOf(raw: string): Mode {
-	return raw.trim().toLowerCase() === "warn" ? "warn" : "strict";
+/**
+ * Reporting is the default and failing is opt-in, so only an explicit "true"
+ * turns a lookalike into a red job. A typo leaves the run where it started:
+ * the finding is still on the thread, and nobody is blocked by a mistyped flag.
+ */
+export function failOnMatchOf(raw: string): boolean {
+	return raw.trim().toLowerCase() === "true";
 }
+
+/** An unknown mode falls back to `full`; the caller says so out loud. */
+export function modeOf(raw: string): Mode | null {
+	const value = raw.trim().toLowerCase();
+	return (MODES as string[]).includes(value) ? (value as Mode) : null;
+}
+
+export const wantsComment = (mode: Mode): boolean =>
+	mode === "full" || mode === "comment";
+
+export const wantsLabel = (mode: Mode): boolean =>
+	mode === "full" || mode === "labels";
 
 // The strongest resemblance between the author's login and a protected one.
 export function check(login: string, targets: Protected[]): Match | null {

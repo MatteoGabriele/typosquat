@@ -27,4 +27,4 @@ jobs:
           persist-credentials: false
       - uses: ./
         with:
-          on-detection: comment,summary
+          mode: full

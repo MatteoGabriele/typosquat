@@ -1,12 +1,19 @@
 import { appendFileSync, readFileSync } from "node:fs";
 import {
 	check,
+	failOnMatchOf,
 	isBotLogin,
+	type Match,
 	MEANING,
+	MODES,
+	type Mode,
 	modeOf,
 	type Protected,
 	shouldFail,
+	wantsComment,
+	wantsLabel,
 } from "./check.js";
+import { buildComment, MARKER } from "./report.js";
 import { TRUSTED } from "./trusted.js";
 
 const API = process.env.GITHUB_API_URL || "https://api.github.com";
@@ -36,13 +43,43 @@ function setOutput(name: string, value: string): void {
 	appendFileSync(file, `${name}=${value}\n`);
 }
 
-/** The one thing this action reads from the webhook: who opened the thread. */
-function authorOf(eventPath: string): string {
+/** What this action reads from the webhook: who opened the thread, and where. */
+function threadOf(eventPath: string): { author: string; number: number } {
 	const payload = JSON.parse(readFileSync(eventPath, "utf8")) as {
-		pull_request?: { user?: { login?: string } | null } | null;
-		issue?: { user?: { login?: string } | null } | null;
+		pull_request?: Thread | null;
+		issue?: Thread | null;
 	};
-	return payload.pull_request?.user?.login ?? payload.issue?.user?.login ?? "";
+	const thread = payload.pull_request ?? payload.issue;
+	return { author: thread?.user?.login ?? "", number: thread?.number ?? 0 };
+}
+
+interface Thread {
+	number?: number;
+	user?: { login?: string } | null;
+}
+
+async function api<T>(
+	method: string,
+	path: string,
+	token: string,
+	body?: unknown,
+): Promise<T | null> {
+	const res = await fetch(`${API}${path}`, {
+		method,
+		headers: {
+			accept: "application/vnd.github+json",
+			"user-agent": "typosquat",
+			...(token ? { authorization: `Bearer ${token}` } : {}),
+			...(body ? { "content-type": "application/json" } : {}),
+		},
+		...(body ? { body: JSON.stringify(body) } : {}),
+	}).catch(() => null);
+
+	if (!res?.ok) {
+		return null;
+	}
+
+	return (await res.json().catch(() => null)) as T | null;
 }
 
 /** Best-effort: contributors are a bonus, a failed lookup is not an error. */
@@ -50,26 +87,153 @@ async function contributors(
 	repository: string,
 	token: string,
 ): Promise<string[]> {
-	const res = await fetch(
-		`${API}/repos/${repository}/contributors?per_page=100`,
-		{
-			headers: {
-				accept: "application/vnd.github+json",
-				"user-agent": "typosquat",
-				...(token ? { authorization: `Bearer ${token}` } : {}),
-			},
-		},
-	).catch(() => null);
-
-	if (!res?.ok) {
-		return [];
-	}
-
-	const body = (await res.json().catch(() => [])) as { login?: string }[];
+	const body = await api<{ login?: string }[]>(
+		"GET",
+		`/repos/${repository}/contributors?per_page=100`,
+		token,
+	);
 
 	return Array.isArray(body)
 		? body.flatMap((c) => (c.login ? [c.login] : []))
 		: [];
+}
+
+/**
+ * One note per thread: our own comment is found by its marker and rewritten,
+ * so a thread checked ten times still reads as one observation.
+ */
+async function comment(
+	repository: string,
+	number: number,
+	token: string,
+	body: string,
+): Promise<void> {
+	const existing = await api<{ id: number; body?: string }[]>(
+		"GET",
+		`/repos/${repository}/issues/${number}/comments?per_page=100`,
+		token,
+	);
+
+	const mine = Array.isArray(existing)
+		? existing.find((c) => c.body?.includes(MARKER))
+		: undefined;
+
+	const done = mine
+		? await api(
+				"PATCH",
+				`/repos/${repository}/issues/comments/${mine.id}`,
+				token,
+				{ body },
+			)
+		: await api(
+				"POST",
+				`/repos/${repository}/issues/${number}/comments`,
+				token,
+				{ body },
+			);
+
+	if (!done) {
+		throw new Error("the comment could not be posted");
+	}
+}
+
+async function label(
+	repository: string,
+	number: number,
+	token: string,
+	name: string,
+): Promise<void> {
+	const done = await api(
+		"POST",
+		`/repos/${repository}/issues/${number}/labels`,
+		token,
+		{ labels: [name] },
+	);
+
+	if (!done) {
+		throw new Error(`the label "${name}" could not be added`);
+	}
+}
+
+/**
+ * Commenting and labelling are how the finding is delivered, not the finding
+ * itself. A missing permission must not swallow the verdict, so a failure here
+ * is reported and the run carries on to its exit code.
+ */
+async function act(
+	mode: Mode,
+	result: Match,
+	author: string,
+	ctx: { repository: string; number: number; token: string; label: string },
+): Promise<void> {
+	if (mode === "silent" || ctx.number === 0) {
+		return;
+	}
+
+	try {
+		if (wantsComment(mode)) {
+			await comment(
+				ctx.repository,
+				ctx.number,
+				ctx.token,
+				buildComment(author, result),
+			);
+		}
+
+		if (wantsLabel(mode)) {
+			await label(ctx.repository, ctx.number, ctx.token, ctx.label);
+		}
+	} catch (err: unknown) {
+		log(
+			`::warning::The match was found but not posted: ${err instanceof Error ? err.message : String(err)}. Check the job's "issues: write" and "pull-requests: write" permissions.`,
+		);
+	}
+}
+
+/**
+ * Two older spellings asked the failing question, and both still answer it:
+ * `mode: strict` / `mode: warn`, and `fail-on: <level>` / `fail-on: never`.
+ * A workflow that asked to fail keeps failing, even though new ones do not.
+ */
+function failOnMatchFrom(mode: string): boolean {
+	const legacy: Record<string, boolean> = {
+		strict: true,
+		warn: false,
+		log: false,
+	};
+
+	if (mode in legacy) {
+		return legacy[mode] ?? false;
+	}
+
+	const failOn = input("fail-on");
+
+	if (failOn) {
+		return failOn.toLowerCase() !== "never";
+	}
+
+	return failOnMatchOf(input("fail-on-match"));
+}
+
+function settingsOf(): { mode: Mode; failOnMatch: boolean } {
+	const raw = input("mode", "full");
+	const value = raw.toLowerCase();
+	const failOnMatch = failOnMatchFrom(value);
+
+	if (value === "strict" || value === "warn" || value === "log") {
+		log(
+			`::warning::"mode: ${raw}" is the old spelling; it now means "fail-on-match: ${failOnMatch}". Set "fail-on-match" instead — "mode" chooses between ${MODES.join(", ")}.`,
+		);
+		return { mode: "full", failOnMatch };
+	}
+
+	const mode = modeOf(raw);
+
+	if (!mode) {
+		log(`::warning::Unknown mode "${raw}"; falling back to "full".`);
+	}
+
+	return { mode: mode ?? "full", failOnMatch };
 }
 
 async function run(): Promise<void> {
@@ -84,12 +248,9 @@ async function run(): Promise<void> {
 	const owner = repository.split("/")[0];
 	const token = input("github-token", process.env.GITHUB_TOKEN ?? "");
 	const allow = new Set(list(input("allow")).map((l) => l.toLowerCase()));
-	// `fail-on` was the old spelling: any level it named meant "fail the job".
-	const mode = modeOf(
-		input("mode", input("fail-on") === "never" ? "warn" : ""),
-	);
+	const { mode, failOnMatch } = settingsOf();
 
-	const author = authorOf(eventPath);
+	const { author, number } = threadOf(eventPath);
 	setOutput("actor", author);
 
 	const clear = (reason: string): void => {
@@ -149,9 +310,16 @@ async function run(): Promise<void> {
 		`::warning::${result.severity.toUpperCase()}: ${author} looks like ${result.resembles} (${result.reason}). ${MEANING[result.severity]}`,
 	);
 
-	if (shouldFail(result.severity, mode)) {
+	await act(mode, result, author, {
+		repository,
+		number,
+		token,
+		label: input("label", "typosquat:lookalike"),
+	});
+
+	if (shouldFail(result.severity, failOnMatch)) {
 		log(
-			`::error::Failing the job because ${author} looks like ${result.resembles}. Add "${author}" to "allow" if it is legitimate, or set "mode: warn" to never fail on a lookalike.`,
+			`::error::Failing the job because ${author} looks like ${result.resembles}. Add "${author}" to "allow" if it is legitimate, or set "fail-on-match: false" to report without failing.`,
 		);
 		process.exitCode = 1;
 	}

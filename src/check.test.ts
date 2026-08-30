@@ -2,11 +2,14 @@ import { expect, test } from "vitest";
 import {
 	atLeast,
 	check,
+	failOnMatchOf,
 	isBotLogin,
 	modeOf,
 	type Protected,
 	severityOf,
 	shouldFail,
+	wantsComment,
+	wantsLabel,
 } from "../src/check.js";
 
 const TARGETS: Protected[] = [
@@ -134,21 +137,47 @@ test("bot logins are recognised by suffix", () => {
 	expect(isBotLogin("octocat")).toBe(false);
 });
 
-test("strict fails on any match, warn on none", () => {
+test("any match fails the job unless failing is turned off", () => {
 	for (const risk of ["low", "medium", "high", "critical"] as const) {
-		expect(shouldFail(risk, "strict")).toBe(true);
-		expect(shouldFail(risk, "warn")).toBe(false);
+		expect(shouldFail(risk, true)).toBe(true);
+		expect(shouldFail(risk, false)).toBe(false);
 	}
 
-	expect(shouldFail("none", "strict")).toBe(false);
+	expect(shouldFail("none", true)).toBe(false);
 });
 
-test('only "warn" disarms the action; anything else is strict', () => {
-	expect(modeOf("warn")).toBe("warn");
-	expect(modeOf(" WARN ")).toBe("warn");
-	expect(modeOf("strict")).toBe("strict");
+test('only "true" makes a match fail the job', () => {
+	expect(failOnMatchOf("true")).toBe(true);
+	expect(failOnMatchOf(" TRUE ")).toBe(true);
+	expect(failOnMatchOf("false")).toBe(false);
 
-	// A typo must not quietly turn the guard off.
-	expect(modeOf("")).toBe("strict");
-	expect(modeOf("warnn")).toBe("strict");
+	// A typo leaves the run where it started: reported, not blocked.
+	expect(failOnMatchOf("")).toBe(false);
+	expect(failOnMatchOf("yes")).toBe(false);
+	expect(failOnMatchOf("ture")).toBe(false);
+});
+
+test("mode is one of the four names, or nothing", () => {
+	expect(modeOf("full")).toBe("full");
+	expect(modeOf(" SILENT ")).toBe("silent");
+	expect(modeOf("labels")).toBe("labels");
+	expect(modeOf("comment")).toBe("comment");
+
+	// The caller decides what an unknown value means, and says so.
+	expect(modeOf("")).toBe(null);
+	expect(modeOf("strict")).toBe(null);
+	expect(modeOf("fulll")).toBe(null);
+});
+
+test("mode picks the channels a match is delivered on", () => {
+	expect([wantsComment("full"), wantsLabel("full")]).toEqual([true, true]);
+	expect([wantsComment("comment"), wantsLabel("comment")]).toEqual([
+		true,
+		false,
+	]);
+	expect([wantsComment("labels"), wantsLabel("labels")]).toEqual([false, true]);
+	expect([wantsComment("silent"), wantsLabel("silent")]).toEqual([
+		false,
+		false,
+	]);
 });

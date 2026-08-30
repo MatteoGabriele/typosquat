@@ -8,6 +8,8 @@ on:
 
 permissions:
   contents: read
+  issues: write
+  pull-requests: write
 
 jobs:
   guard:
@@ -19,9 +21,11 @@ jobs:
           protect: |
             acme-release-bot
             acme-security
-          # strict (the default) fails the job on any lookalike.
-          # mode: warn annotates and never fails.
-          mode: strict
+          # full (the default) comments on the thread and labels it.
+          # labels / comment do one of the two; silent does neither.
+          mode: full
+          # A lookalike is reported, not blocked, unless this is turned on.
+          fail-on-match: false
 
       - name: Notify security channel
         if: steps.guard.outputs.risk == 'critical'
@@ -34,8 +38,9 @@ jobs:
       #   medium    the real name with extra words around it (forks look like this)
       #   low       vaguely similar, two characters off
       #
-      # mode decides only whether the job fails. risk and rule are set either
-      # way, so a workflow can act on them itself, as the steps below do.
+      # mode decides what the thread is told, fail-on-match whether the job
+      # goes red (off by default). risk and rule are set whatever those say, so
+      # a workflow can act on them itself, as the steps below do.
       #
       # `rule` names which resemblance matched, so a workflow can treat a copied
       # name differently from a plausible typo:

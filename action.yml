@@ -19,9 +19,17 @@ inputs:
     required: false
     default: ''
   mode:
-    description: 'strict (the default) fails the job on any lookalike. warn only annotates and never fails.'
+    description: "How Typosquat should act on a lookalike: 'full' (comment and label), 'labels' (label only), 'comment' (comment only), or 'silent' (outputs and annotation only, no comment or label)."
     required: false
-    default: 'strict'
+    default: 'full'
+  fail-on-match:
+    description: 'Whether a lookalike fails the job. False by default; the match is reported either way.'
+    required: false
+    default: 'false'
+  label:
+    description: 'Label to add when the author resembles a protected login.'
+    required: false
+    default: 'typosquat:lookalike'
 
 outputs:
   actor:
