@@ -5,7 +5,9 @@ import {
 	foldLeet,
 	foldRepeats,
 	foldSeparators,
+	isNameOpaque,
 	stripBotAffix,
+	stripRoleAffix,
 } from "./text.js";
 
 export type Severity = "none" | "low" | "medium" | "high" | "critical";
@@ -52,6 +54,17 @@ export function atLeast(severity: Severity, minimum: Severity): boolean {
 export const isBotLogin = (login: string): boolean =>
 	/\[bot\]$/i.test(login) || /(?:^|[-_])bot$/i.test(login);
 
+/**
+ * A login nobody can read is a login nobody can check. `yyx990803` and
+ * `43081j` are as legitimate as `danielroe` and far easier to imitate, because
+ * the reader has no word to compare against. A resemblance to one of those is
+ * worth more than the same resemblance to a pronounceable name.
+ */
+const OPAQUE_BONUS = 8;
+
+/** Rules that already tolerate distance do not also earn the opacity bonus. */
+const LOOSE_RULES: ReadonlySet<string> = new Set(["near-miss", "affix-wrap"]);
+
 /** Rules against one protected login, most specific first. First hit wins. */
 function match(
 	login: string,
@@ -68,12 +81,19 @@ function match(
 		return null;
 	}
 
-	const hit = (rule: string, score: number, reason: string) => ({
-		rule,
-		score,
-		resembles: target.login,
-		reason,
-	});
+	const opaque = isNameOpaque(base);
+
+	const hit = (rule: string, score: number, reason: string) => {
+		const boost = opaque && !LOOSE_RULES.has(rule);
+		return {
+			rule,
+			score: boost ? Math.min(95, score + OPAQUE_BONUS) : score,
+			resembles: target.login,
+			reason: boost
+				? `${reason}, and ${target.login} is not a name a reader can check by eye`
+				: reason,
+		};
+	};
 
 	if (a === b) {
 		// A login cannot contain "[" or "]", so the bare stem of a GitHub App is
@@ -90,6 +110,18 @@ function match(
 
 	if (target.isBot && foldSeparators(stripBotAffix(a)) === bSep) {
 		return hit("bot-affix-variant", 82, `hand-made variant of ${target.login}`);
+	}
+
+	// Stripped from both sides: "danielroe-official" against "danielroe", and
+	// "patak" against "patak-dev". Either direction is the same claim.
+	const aRole = foldSeparators(stripRoleAffix(a));
+	const bRole = foldSeparators(stripRoleAffix(b));
+	if (aRole === bRole && aSep !== bSep && bRole.length >= 4) {
+		return hit(
+			"authority-affix",
+			80,
+			`claims to be an official or personal account of ${target.login}`,
+		);
 	}
 
 	if (foldLeet(a) === foldLeet(b) && aSep !== bSep) {
@@ -128,7 +160,12 @@ function match(
 		return hit("character-swap", 76, "two characters swapped");
 	}
 
-	if (osaDistance(aSep, bSep, 2) === 2 && bSep.length >= 8) {
+	// Two edits is a wide net, so it needs a long name to stay quiet — unless
+	// the name is opaque, where the reader has no chance of spotting the two.
+	if (
+		osaDistance(aSep, bSep, 2) === 2 &&
+		(bSep.length >= 8 || (opaque && bSep.length >= 5))
+	) {
 		return hit("near-miss", 58, "two characters away");
 	}
 
