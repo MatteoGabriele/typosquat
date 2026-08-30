@@ -65,11 +65,6 @@ export const TRUSTED_PEOPLE: readonly string[] = [
 	"serhalp",
 	"alexdln",
 	"shuuji3",
-
-	// test account.
-	// this should fail when i use it.
-	// real account is `anastelline`.
-	"anasteline",
 ];
 
 /** Everything the action defends out of the box. */
