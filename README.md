@@ -24,7 +24,7 @@ jobs:
   guard:
     runs-on: ubuntu-latest
     steps:
-      - uses: MatteoGabriele/typosquat@0b860af5b00743a61082f4fb968d479db3e63208
+      - uses: MatteoGabriele/typosquat@94e108d28b61ca997a51eba4acfea68a369b23fe
 ```
 
 That fails the job on any lookalike. To watch first and fail later, add
@@ -37,7 +37,7 @@ The built-in lists in [`src/trusted.ts`](src/trusted.ts) — `TRUSTED_BOTS` and 
 The maintainer list is a default, not a ranking: a starting set of names whose word carries weight in an issue tracker, so the common impersonations cost something out of the box. Add your own, and use `allow` for anyone the defaults flag by accident:
 
 ```yaml
-- uses: MatteoGabriele/typosquat@0b860af5b00743a61082f4fb968d479db3e63208
+- uses: MatteoGabriele/typosquat@94e108d28b61ca997a51eba4acfea68a369b23fe
   with:
     protect: |
       acme-release-bot
@@ -67,7 +67,7 @@ The maintainer list is a default, not a ranking: a starting set of names whose w
 
 ```yaml
 - id: guard
-  uses: MatteoGabriele/typosquat@0b860af5b00743a61082f4fb968d479db3e63208
+  uses: MatteoGabriele/typosquat@94e108d28b61ca997a51eba4acfea68a369b23fe
 - if: steps.guard.outputs.risk == 'critical'
   run: gh issue lock ${{ github.event.issue.number }}
 ```
@@ -105,7 +105,7 @@ job?
 | `warn` | Nothing ever fails. The match is still reported. |
 
 ```yaml
-- uses: MatteoGabriele/typosquat@0b860af5b00743a61082f4fb968d479db3e63208
+- uses: MatteoGabriele/typosquat@94e108d28b61ca997a51eba4acfea68a369b23fe
   with:
     mode: warn
 ```
@@ -126,7 +126,7 @@ the workflow:
 
 ```yaml
 - id: guard
-  uses: MatteoGabriele/typosquat@0b860af5b00743a61082f4fb968d479db3e63208
+  uses: MatteoGabriele/typosquat@94e108d28b61ca997a51eba4acfea68a369b23fe
   with:
     mode: warn
 
