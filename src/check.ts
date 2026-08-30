@@ -77,7 +77,7 @@ export interface Match {
 const RANK = new Map<Rule, number>(RULES.map(([rule], i) => [rule, i]));
 const RULE_SEVERITY = new Map<Rule, Severity>(RULES);
 
-//  The floor of each severity.
+// The floor of each severity.
 const BANDS: ReadonlyArray<readonly [number, Severity]> = [
 	[80, "critical"],
 	[60, "high"],
@@ -216,7 +216,8 @@ function match(login: string, target: Protected): Match | null {
 	}
 
 	// Two edits is a wide net, so it needs a long name to stay quiet — unless
-	// the name is opaque, where the reader has no chance of spotting the two.
+	// the name is opaque, in which case the reader has no chance of spotting
+	// the two.
 	if (
 		osaDistance(aSep, bSep, 2) === 2 &&
 		(bSep.length >= 8 || (opaque && bSep.length >= 5))

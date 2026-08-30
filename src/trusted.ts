@@ -1,9 +1,9 @@
 /**
  * GitHub Apps and service accounts that appear on most repositories.
- * This is especially dangerous when a fake account like `depenbadot`, with identical avatar as
- * the original one, tries to open a fake package update with potential malware.
+ * This is especially dangerous when a fake account like `depenbadot`, with an avatar identical
+ * to the original one, tries to open a fake package update with potential malware.
  *
- * Should be a list to constantly update and handled by the community itself.
+ * Should be a list constantly updated and maintained by the community itself.
  */
 export const TRUSTED_BOTS: readonly string[] = [
 	"dependabot[bot]",
@@ -24,12 +24,12 @@ export const TRUSTED_BOTS: readonly string[] = [
 ];
 
 /**
- * Known maintainers names.
+ * Known maintainer names.
  *
  * This is especially useful for unreadable names: `yyx990803` and `43081j`
- * whic are impossible to verify at a glance.
+ * which are impossible to verify at a glance.
  *
- * Should be a list to constantly update and handled by the community itself.
+ * Should be a list constantly updated and maintained by the community itself.
  */
 export const TRUSTED_PEOPLE: readonly string[] = [
 	"yyx990803",
