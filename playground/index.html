@@ -1,0 +1,443 @@
+<title>Typosquat Playground</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<style>
+	:root {
+		--ground: #e9eef1;
+		--surface: #ffffff;
+		--sunk: #dde5ea;
+		--ink: #141d24;
+		--muted: #5a6a76;
+		--line: #ccd8de;
+		--line-strong: #a9bcc6;
+		--accent: #0f6d84;
+		--clear: #2f7d5f;
+		--low: #8a7220;
+		--medium: #b06520;
+		--high: #c2452a;
+		--critical: #9c1f42;
+		--shadow: 0 1px 2px rgba(20, 29, 36, .06), 0 8px 24px -12px rgba(20, 29, 36, .18);
+		--mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+		--sans: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+		--display: "Archivo", "IBM Plex Sans", system-ui, sans-serif;
+	}
+	@media (prefers-color-scheme: dark) {
+		:root:not([data-theme="light"]) {
+			--ground: #0e1418;
+			--surface: #161f25;
+			--sunk: #111a1f;
+			--ink: #dce6ec;
+			--muted: #8496a2;
+			--line: #243139;
+			--line-strong: #37464f;
+			--accent: #5fb6cd;
+			--clear: #5aab86;
+			--low: #c3a64a;
+			--medium: #dd9048;
+			--high: #ec7256;
+			--critical: #e2547b;
+			--shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 30px -14px rgba(0, 0, 0, .7);
+		}
+	}
+	:root[data-theme="dark"] {
+		--ground: #0e1418;
+		--surface: #161f25;
+		--sunk: #111a1f;
+		--ink: #dce6ec;
+		--muted: #8496a2;
+		--line: #243139;
+		--line-strong: #37464f;
+		--accent: #5fb6cd;
+		--clear: #5aab86;
+		--low: #c3a64a;
+		--medium: #dd9048;
+		--high: #ec7256;
+		--critical: #e2547b;
+		--shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 30px -14px rgba(0, 0, 0, .7);
+	}
+
+	* { box-sizing: border-box; }
+
+	body {
+		margin: 0;
+		background: var(--ground);
+		color: var(--ink);
+		font-family: var(--sans);
+		font-size: 15px;
+		line-height: 1.55;
+		-webkit-font-smoothing: antialiased;
+	}
+
+	.page {
+		max-width: 920px;
+		margin: 0 auto;
+		padding: 40px 24px 80px;
+		display: flex;
+		flex-direction: column;
+		gap: 28px;
+	}
+
+	.eyebrow {
+		font-family: var(--mono);
+		font-size: 11px;
+		font-weight: 500;
+		letter-spacing: .16em;
+		text-transform: uppercase;
+		color: var(--muted);
+		margin: 0;
+	}
+
+	h1 {
+		font-family: var(--display);
+		font-weight: 700;
+		font-size: clamp(30px, 5vw, 44px);
+		line-height: 1.06;
+		letter-spacing: -.02em;
+		text-wrap: balance;
+		margin: 10px 0 0;
+	}
+
+	.lede {
+		margin: 12px 0 0;
+		max-width: 62ch;
+		color: var(--muted);
+	}
+
+	/* ---------- command field ---------- */
+
+	.field {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		background: var(--surface);
+		border: 1px solid var(--line-strong);
+		border-radius: 10px;
+		padding: 4px 18px 4px 16px;
+		box-shadow: var(--shadow);
+	}
+	.field:focus-within { border-color: var(--accent); box-shadow: var(--shadow), 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+	.field .at {
+		font-family: var(--mono);
+		font-size: 24px;
+		color: var(--line-strong);
+		user-select: none;
+	}
+	#login {
+		flex: 1;
+		min-width: 0;
+		border: 0;
+		outline: none;
+		background: transparent;
+		color: var(--ink);
+		font-family: var(--mono);
+		font-size: clamp(20px, 3.4vw, 27px);
+		font-weight: 500;
+		letter-spacing: -.01em;
+		padding: 14px 0;
+	}
+	#login::placeholder { color: var(--line-strong); }
+
+	.examples { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+	.examples .label {
+		font-family: var(--mono);
+		font-size: 11px;
+		letter-spacing: .1em;
+		text-transform: uppercase;
+		color: var(--muted);
+		margin-right: 2px;
+	}
+	.chip {
+		font-family: var(--mono);
+		font-size: 13px;
+		color: var(--ink);
+		background: transparent;
+		border: 1px solid var(--line);
+		border-radius: 999px;
+		padding: 4px 11px;
+		cursor: pointer;
+		transition: border-color .12s, background .12s;
+	}
+	.chip:hover { border-color: var(--accent); background: var(--surface); }
+	.chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+	/* ---------- verdict ---------- */
+
+	.card {
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: 12px;
+		box-shadow: var(--shadow);
+		overflow: hidden;
+	}
+	.card.tone { border-top: 3px solid var(--tone); }
+
+	.verdict-head {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 10px 14px;
+		padding: 20px 22px 0;
+	}
+	.badge {
+		font-family: var(--mono);
+		font-size: 11px;
+		font-weight: 600;
+		letter-spacing: .14em;
+		text-transform: uppercase;
+		color: var(--surface);
+		background: var(--tone);
+		border-radius: 4px;
+		padding: 4px 9px;
+	}
+	.verdict-title {
+		font-family: var(--display);
+		font-weight: 600;
+		font-size: 20px;
+		letter-spacing: -.01em;
+		margin: 0;
+		flex: 1;
+		min-width: 220px;
+	}
+	.verdict-title b { font-family: var(--mono); font-weight: 600; font-size: .94em; }
+	.rule {
+		font-family: var(--mono);
+		font-size: 12px;
+		color: var(--muted);
+		background: var(--sunk);
+		border-radius: 4px;
+		padding: 3px 8px;
+	}
+	.reason { margin: 8px 22px 0; color: var(--muted); }
+	.page code { font-family: var(--mono); font-size: .92em; color: var(--ink); }
+
+	/* ---------- score meter ---------- */
+
+	.meter { padding: 18px 22px 22px; display: flex; flex-direction: column; gap: 7px; }
+	.meter-track {
+		position: relative;
+		height: 10px;
+		background: var(--sunk);
+		border-radius: 999px;
+		overflow: hidden;
+	}
+	.meter-fill {
+		position: absolute;
+		inset: 0 auto 0 0;
+		background: var(--tone);
+		border-radius: 999px;
+		transition: width .28s cubic-bezier(.2, .7, .3, 1);
+	}
+	.meter-tick { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--ground); }
+	.meter-scale {
+		position: relative;
+		height: 15px;
+		font-family: var(--mono);
+		font-size: 10px;
+		letter-spacing: .08em;
+		text-transform: uppercase;
+		color: var(--muted);
+	}
+	.meter-scale span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+	.meter-value {
+		font-family: var(--mono);
+		font-size: 12px;
+		color: var(--muted);
+		font-variant-numeric: tabular-nums;
+	}
+	.meter-value b { color: var(--ink); font-size: 15px; font-weight: 600; }
+
+	/* ---------- alignment readout ---------- */
+
+	.align { border-top: 1px solid var(--line); background: var(--sunk); padding: 18px 22px 20px; }
+	.align h3 {
+		font-family: var(--mono);
+		font-size: 11px;
+		font-weight: 500;
+		letter-spacing: .14em;
+		text-transform: uppercase;
+		color: var(--muted);
+		margin: 0 0 14px;
+	}
+	.align-scroll { overflow-x: auto; padding-bottom: 4px; }
+	.align-grid { display: inline-flex; flex-direction: column; gap: 4px; }
+	.align-row { display: flex; align-items: center; gap: 3px; }
+	.align-row .who {
+		font-family: var(--mono);
+		font-size: 10px;
+		letter-spacing: .08em;
+		text-transform: uppercase;
+		color: var(--muted);
+		width: 74px;
+		flex: none;
+		text-align: right;
+		padding-right: 10px;
+	}
+	.cell {
+		font-family: var(--mono);
+		font-size: 17px;
+		font-weight: 500;
+		width: 23px;
+		height: 30px;
+		flex: none;
+		display: grid;
+		place-items: center;
+		border-radius: 3px;
+		color: var(--muted);
+		background: color-mix(in srgb, var(--ink) 4%, transparent);
+	}
+	.cell.diff { color: var(--surface); background: var(--tone); font-weight: 600; }
+	.cell.gap { color: var(--line-strong); background: transparent; border: 1px dashed var(--line); }
+	.align-note { margin: 14px 0 0; font-size: 13px; color: var(--muted); max-width: 60ch; }
+
+	/* ---------- runners-up ---------- */
+
+	.also { padding: 4px 22px 20px; }
+	.also h3 {
+		font-family: var(--mono);
+		font-size: 11px;
+		font-weight: 500;
+		letter-spacing: .14em;
+		text-transform: uppercase;
+		color: var(--muted);
+		margin: 0 0 10px;
+	}
+	.also ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+	.also li {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		padding: 8px 0;
+		border-top: 1px solid var(--line);
+		font-size: 13px;
+	}
+	.also .n { font-family: var(--mono); font-variant-numeric: tabular-nums; font-weight: 600; color: var(--ink); width: 30px; flex: none; }
+	.also .who { font-family: var(--mono); font-size: 13px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+	.also .why { color: var(--muted); text-align: right; }
+
+	/* ---------- protected set ---------- */
+
+	details.panel {
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: 12px;
+		padding: 0;
+	}
+	details.panel > summary {
+		cursor: pointer;
+		list-style: none;
+		padding: 14px 20px;
+		font-family: var(--mono);
+		font-size: 12px;
+		letter-spacing: .06em;
+		text-transform: uppercase;
+		color: var(--muted);
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+	details.panel > summary::-webkit-details-marker { display: none; }
+	details.panel > summary::before { content: "+"; color: var(--accent); font-weight: 600; }
+	details.panel[open] > summary::before { content: "–"; }
+	details.panel > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 12px; }
+	.panel-body { padding: 4px 20px 20px; display: flex; flex-direction: column; gap: 14px; }
+	.panel-body label,
+	.panel-body .sub-label {
+		font-family: var(--mono);
+		font-size: 11px;
+		letter-spacing: .1em;
+		text-transform: uppercase;
+		color: var(--muted);
+		display: block;
+		margin-bottom: 6px;
+		margin-top: 0;
+	}
+	#extra {
+		width: 100%;
+		min-height: 76px;
+		resize: vertical;
+		background: var(--sunk);
+		color: var(--ink);
+		border: 1px solid var(--line);
+		border-radius: 8px;
+		padding: 10px 12px;
+		font-family: var(--mono);
+		font-size: 13px;
+		line-height: 1.7;
+	}
+	#extra:focus-visible { outline: 2px solid var(--accent); outline-offset: -1px; }
+	.botlist { display: flex; flex-wrap: wrap; gap: 6px; }
+	.botlist span {
+		font-family: var(--mono);
+		font-size: 12px;
+		color: var(--muted);
+		background: var(--sunk);
+		border-radius: 4px;
+		padding: 2px 7px;
+	}
+
+	footer {
+		border-top: 1px solid var(--line);
+		padding-top: 18px;
+		font-size: 13px;
+		color: var(--muted);
+	}
+	footer a { color: var(--accent); }
+
+	@media (prefers-reduced-motion: reduce) {
+		.meter-fill, .chip, .field { transition: none; }
+	}
+</style>
+
+<div class="page">
+	<header>
+		<p class="eyebrow">Typosquat Guard</p>
+		<h1>Type a login, see who it imitates</h1>
+		<p class="lede">Type any GitHub login below and it is scored against the protected set, the built-in bot list, plus whatever you add.</p>
+	</header>
+
+	<div>
+		<div class="field">
+			<span class="at" aria-hidden="true">@</span>
+			<input id="login" type="text" spellcheck="false" autocapitalize="off" autocomplete="off"
+				placeholder="dependab0t" aria-label="GitHub login to check">
+		</div>
+	</div>
+
+	<div class="examples">
+		<span class="label">Try</span>
+		<button class="chip" type="button">dependabot</button>
+		<button class="chip" type="button">dependab0t</button>
+		<button class="chip" type="button">depenbadot</button>
+		<button class="chip" type="button">depend-a-bot</button>
+		<button class="chip" type="button">renovate-bot</button>
+		<button class="chip" type="button">g1thub-actions</button>
+		<button class="chip" type="button">MatteoGabrie1e</button>
+		<button class="chip" type="button">danieleroe</button>
+	</div>
+
+	<div id="out" aria-live="polite"></div>
+
+	<details class="panel">
+		<summary>Protected set · <span id="count">—</span> logins</summary>
+		<div class="panel-body">
+			<div>
+				<label for="extra">Your own logins to defend — one per line (the action's <code>protect:</code> input)</label>
+				<textarea id="extra" spellcheck="false">MatteoGabriele
+acme-release-bot</textarea>
+			</div>
+			<div>
+				<p class="sub-label">Built in — widely trusted apps and bots</p>
+				<div class="botlist" id="bots"></div>
+			</div>
+		</div>
+	</details>
+
+	<footer>
+		A login ending in <code>[bot]</code> belongs to a GitHub App and is skipped: <code>[</code> and <code>]</code> are illegal in a human login, so that suffix cannot be forged. Everything else is a resemblance heuristic; a tripwire that makes a maintainer look twice, not an authorisation boundary.
+	</footer>
+</div>
+
+<script src="./check.iife.js"></script>
+<script src="./page.js"></script>
+
+

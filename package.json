@@ -1,0 +1,35 @@
+{
+	"name": "typosquat",
+	"version": "0.1.0",
+	"description": "GitHub Action that warns when an account imitates a trusted bot, maintainer or contributor.",
+	"type": "module",
+	"author": "Matteo Gabriele <m.gabriele.dev@gmail.com>",
+	"license": "MIT",
+	"packageManager": "pnpm@11.22.0",
+	"files": [
+		"dist"
+	],
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"build": "tsdown",
+		"playground": "node playground/serve.mjs",
+		"playground:build": "tsdown --config playground/tsdown.config.ts",
+		"dev": "tsdown --watch",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"typecheck": "tsc --noEmit",
+		"check": "biome check",
+		"check:fix": "biome check --write",
+		"prepublishOnly": "pnpm run build"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.5.11",
+		"@types/node": "^25.3.5",
+		"@typescript/native-preview": "7.0.0-dev.20260309.1",
+		"tsdown": "^0.21.5",
+		"typescript": "^5.9.3",
+		"vitest": "^2.1.8"
+	}
+}

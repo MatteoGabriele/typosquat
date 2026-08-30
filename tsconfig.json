@@ -1,0 +1,28 @@
+{
+	"compilerOptions": {
+		"target": "esnext",
+		"lib": ["es2023"],
+		"moduleDetection": "force",
+		"module": "preserve",
+		"moduleResolution": "bundler",
+		"resolveJsonModule": true,
+		"types": ["node"],
+		"strict": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"noFallthroughCasesInSwitch": true,
+		"esModuleInterop": true,
+		"isolatedModules": true,
+		"verbatimModuleSyntax": true,
+		"skipLibCheck": true,
+		// tsdown emits the bundle; tsc is only ever run as a type checker.
+		"noEmit": true
+	},
+	"include": [
+		"src",
+		"test",
+		"playground",
+		"tsdown.config.ts",
+		"vitest.config.ts"
+	]
+}

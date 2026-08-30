@@ -1,0 +1,40 @@
+name: 'Typosquat Guard'
+description: 'Warns when an issue or PR is opened by an account whose login imitates a trusted bot, the repository owner or a contributor.'
+author: 'MatteoGabriele'
+branding:
+  icon: 'user-x'
+  color: 'orange'
+
+inputs:
+  github-token:
+    description: 'Token used to list repository contributors.'
+    required: false
+    default: ${{ github.token }}
+  protect:
+    description: 'Extra logins to defend, comma- or newline-separated.'
+    required: false
+    default: ''
+  allow:
+    description: 'Logins that must never be flagged, comma- or newline-separated.'
+    required: false
+    default: ''
+  fail-on:
+    description: 'Fail the job at this severity or above: never, low, medium, high, critical.'
+    required: false
+    default: 'never'
+
+outputs:
+  actor:
+    description: 'The login that was checked.'
+  risk:
+    description: 'Severity of the match: none, low, medium, high or critical.'
+  score:
+    description: 'Confidence score 0-100.'
+  resembles:
+    description: 'The protected login the author resembles, empty when there is no match.'
+  rule:
+    description: 'Which rule matched, empty when there is no match.'
+
+runs:
+  using: 'node20'
+  main: 'dist/index.mjs'
