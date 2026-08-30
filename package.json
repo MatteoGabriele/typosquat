@@ -1,7 +1,7 @@
 {
 	"name": "typosquat",
 	"version": "0.1.0",
-	"description": "GitHub Action that warns when an account imitates a trusted bot, maintainer or contributor.",
+	"description": "Flags lookalike usernames trying to pass as trusted bots or maintainers.",
 	"type": "module",
 	"author": "Matteo Gabriele <m.gabriele.dev@gmail.com>",
 	"license": "MIT",

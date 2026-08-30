@@ -1,5 +1,5 @@
 name: 'Typosquat'
-description: 'Warns when an issue or PR is opened by an account whose login imitates a trusted bot, the repository owner or a contributor.'
+description: 'Flags lookalike usernames trying to pass as trusted bots or maintainers.'
 author: 'MatteoGabriele'
 branding:
   icon: 'user-x'
