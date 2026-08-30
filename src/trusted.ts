@@ -57,7 +57,7 @@ export const TRUSTED_PEOPLE: readonly string[] = [
 	"gameroman",
 	"sheremet-va",
 	"ematipico",
-	"graphieros",
+	"graph1eros", // test :D
 	"MatteoGabriele",
 	"TheAlexLichter",
 	"trueberryless",
