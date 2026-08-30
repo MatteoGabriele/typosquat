@@ -6,10 +6,6 @@ Bots are not the only thing worth imitating. A maintainer's name carries as much
 
 It checks one thing: the login of the author. It sets outputs and, optionally, fails the job. It posts nothing and blocks nothing: the judgement is on the reviewer.
 
-```
-::warning::depenbadot resembles dependabot[bot] - two characters swapped (high, 76/100).
-```
-
 ## Quick start
 
 ```yaml
