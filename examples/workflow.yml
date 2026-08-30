@@ -19,8 +19,45 @@ jobs:
           protect: |
             acme-release-bot
             acme-security
-          fail-on: high
+          # strict (the default) fails the job on any lookalike.
+          # mode: warn annotates and never fails.
+          mode: strict
 
       - name: Notify security channel
         if: steps.guard.outputs.risk == 'critical'
         run: echo "${{ steps.guard.outputs.actor }} resembles ${{ steps.guard.outputs.resembles }}"
+
+      # risk answers one question: could someone land on this name by accident?
+      #
+      #   critical  the name was copied; nobody types it by accident
+      #   high      one slip away from the real name: typo, or cheap fake
+      #   medium    the real name with extra words around it (forks look like this)
+      #   low       vaguely similar, two characters off
+      #
+      # mode decides only whether the job fails. risk and rule are set either
+      # way, so a workflow can act on them itself, as the steps below do.
+      #
+      # `rule` names which resemblance matched, so a workflow can treat a copied
+      # name differently from a plausible typo:
+      #
+      #   critical  bot-base-name-squat    dependabot          -> dependabot[bot]
+      #   critical  digit-substitution     dependab0t          -> dependabot[bot]
+      #   critical  bot-affix-variant      renovate-bot        -> renovate[bot]
+      #   critical  authority-affix        the-real-danielroe  -> danielroe
+      #   critical  separator-variant      depend-a-bot        -> dependabot[bot]
+      #   critical  digraph-lookalike      tarnerlinsley       -> tannerlinsley
+      #   high      doubled-character      dependabbot         -> dependabot[bot]
+      #   high      single-character-edit  danieleroe          -> danielroe
+      #   high      character-swap         depenbadot          -> dependabot[bot]
+      #   medium    affix-wrap             dependabot-mirror   -> dependabot[bot]
+      #   low       near-miss              4308ik              -> 43081j
+      #
+      # A login you cannot read by eye (yyx990803, 43081j) counts one level
+      # higher, so a single-character-edit against one of those is critical.
+      - name: Lock the thread on a claimed identity
+        if: >-
+          steps.guard.outputs.rule == 'bot-base-name-squat' ||
+          steps.guard.outputs.rule == 'authority-affix'
+        run: gh issue lock ${{ github.event.issue.number }} --reason spam
+        env:
+          GH_TOKEN: ${{ github.token }}

@@ -3,8 +3,10 @@ import {
 	atLeast,
 	check,
 	isBotLogin,
+	modeOf,
 	type Protected,
 	severityOf,
+	shouldFail,
 } from "../src/check.js";
 
 const TARGETS: Protected[] = [
@@ -130,4 +132,23 @@ test("bot logins are recognised by suffix", () => {
 	expect(isBotLogin("dependabot[bot]")).toBe(true);
 	expect(isBotLogin("snyk-bot")).toBe(true);
 	expect(isBotLogin("octocat")).toBe(false);
+});
+
+test("strict fails on any match, warn on none", () => {
+	for (const risk of ["low", "medium", "high", "critical"] as const) {
+		expect(shouldFail(risk, "strict")).toBe(true);
+		expect(shouldFail(risk, "warn")).toBe(false);
+	}
+
+	expect(shouldFail("none", "strict")).toBe(false);
+});
+
+test('only "warn" disarms the action; anything else is strict', () => {
+	expect(modeOf("warn")).toBe("warn");
+	expect(modeOf(" WARN ")).toBe("warn");
+	expect(modeOf("strict")).toBe("strict");
+
+	// A typo must not quietly turn the guard off.
+	expect(modeOf("")).toBe("strict");
+	expect(modeOf("warnn")).toBe("strict");
 });

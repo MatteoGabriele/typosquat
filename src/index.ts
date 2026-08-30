@@ -1,12 +1,11 @@
 import { appendFileSync, readFileSync } from "node:fs";
 import {
-	atLeast,
 	check,
-	type FailOn,
 	isBotLogin,
+	MEANING,
+	modeOf,
 	type Protected,
-	SEVERITIES,
-	type Severity,
+	shouldFail,
 } from "./check.js";
 import { TRUSTED } from "./trusted.js";
 
@@ -85,7 +84,10 @@ async function run(): Promise<void> {
 	const owner = repository.split("/")[0];
 	const token = input("github-token", process.env.GITHUB_TOKEN ?? "");
 	const allow = new Set(list(input("allow")).map((l) => l.toLowerCase()));
-	const failOn = input("fail-on", "never").toLowerCase() as FailOn;
+	// `fail-on` was the old spelling: any level it named meant "fail the job".
+	const mode = modeOf(
+		input("mode", input("fail-on") === "never" ? "warn" : ""),
+	);
 
 	const author = authorOf(eventPath);
 	setOutput("actor", author);
@@ -144,14 +146,13 @@ async function run(): Promise<void> {
 	setOutput("rule", result.rule);
 
 	log(
-		`::warning::${author} resembles ${result.resembles} - ${result.reason} (${result.severity}, ${result.score}/100).`,
+		`::warning::${result.severity.toUpperCase()}: ${author} looks like ${result.resembles} (${result.reason}). ${MEANING[result.severity]}`,
 	);
 
-	if (
-		SEVERITIES.includes(failOn as Severity) &&
-		atLeast(result.severity, failOn as Severity)
-	) {
-		log(`::error::Risk "${result.severity}" meets fail-on "${failOn}".`);
+	if (shouldFail(result.severity, mode)) {
+		log(
+			`::error::Failing the job because ${author} looks like ${result.resembles}. Add "${author}" to "allow" if it is legitimate, or set "mode: warn" to never fail on a lookalike.`,
+		);
 		process.exitCode = 1;
 	}
 }

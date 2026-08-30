@@ -18,18 +18,18 @@ inputs:
     description: 'Logins that must never be flagged, comma- or newline-separated.'
     required: false
     default: ''
-  fail-on:
-    description: 'Fail the job at this severity or above: never, low, medium, high, critical.'
+  mode:
+    description: 'strict (the default) fails the job on any lookalike. warn only annotates and never fails.'
     required: false
-    default: 'never'
+    default: 'strict'
 
 outputs:
   actor:
     description: 'The login that was checked.'
   risk:
-    description: 'Severity of the match: none, low, medium, high or critical.'
+    description: 'How likely the name is a fake: none, low, medium, high or critical.'
   score:
-    description: 'Confidence score 0-100.'
+    description: 'Score 0-100. A tiebreaker; use risk to decide.'
   resembles:
     description: 'The protected login the author resembles, empty when there is no match.'
   rule:
