@@ -1,4 +1,4 @@
-name: 'Typosquat Guard'
+name: 'Typosquat'
 description: 'Warns when an issue or PR is opened by an account whose login imitates a trusted bot, the repository owner or a contributor.'
 author: 'MatteoGabriele'
 branding:
